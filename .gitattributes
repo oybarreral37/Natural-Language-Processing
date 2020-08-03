@@ -1,2 +1,197 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+## Vamos a importarlos ahora, así como algunas otras bibliotecas que usaremos. ##
+# run this cell to import nltk
+
+import nltk                             
+from nltk.corpus import twitter_samples   
+from os import getcwd
+import matplotlib.pyplot as plt           
+import random                              
+#nltk.download('twitter_samples')
+#nltk.download('stopwords')
+
+
+
+## Preparar el conjunto de datos de Twitter con la biblioteca NLTK ##
+
+#Preparemos la Data
+
+all_positive_tweets = twitter_samples.strings('positive_tweets.json')
+all_negative_tweets = twitter_samples.strings('negative_tweets.json')
+
+print('Number of positive tweets: ', len(all_positive_tweets))
+print('Number of negative tweets: ', len(all_negative_tweets))
+
+print('\nThe type of all_positive_tweets is: ', type(all_positive_tweets))
+print('The type of a tweet entry is: ', type(all_negative_tweets[0]))
+
+
+
+## Miremos los datos de texto en bruto ##
+all_positive_tweets[:20]
+all_negative_tweets[:20]
+
+
+
+total_positive_words = []
+for sentence in all_positive_tweets:
+    total_positive_words.append(sentence.count(' '))
+    
+total_negative_words = []
+for sentence in all_negative_tweets:
+    total_negative_words.append(sentence.count(' '))
+    
+import plotly.graph_objects as go
+import numpy as np
+import pandas as pd
+
+x0 = np.array(total_positive_words)
+x1 = np.array(total_negative_words)
+
+fig = go.Figure()
+fig.add_trace(go.Histogram(x=x1, name = 'Negative'))
+fig.add_trace(go.Histogram(x=x0, name = 'Positive'))
+
+# Superpondremos los histogramas
+fig.update_layout(barmode='overlay')
+# Reducimos la opacidad de los histogramas
+fig.update_traces(opacity=0.75)
+fig.show()
+
+
+
+tweet = all_positive_tweets[1455]
+print(tweet)
+
+
+## Descarguemos las stopwords para la biblioteca NLTK.##
+
+nltk.download('stopwords')
+
+import re                                  
+import string                             
+from nltk.corpus import stopwords 
+from nltk.stem import PorterStemmer
+from nltk.tokenize import TweetTokenizer 
+
+
+
+## Eliminar hipervínculos, marcas de Twitter y estilos ##
+print('Original Tweet: ')
+print(tweet)
+
+# eliminará el texto de retweet de estilo antiguo "RT"
+tweet2 = re.sub(r'^RT[\s]+', '', tweet)
+
+# eliminará hipervínculos
+tweet2 = re.sub(r'https?:\/\/.*[\r\n]*', '', tweet2)
+
+# eliminará los signos de hashtags es decir '#'
+
+tweet2 = re.sub(r'#', '', tweet2)
+
+# eliminará términos numéricos únicos en el tweet.
+tweet2 = re.sub(r'[0-9]', '', tweet2)
+print('\nAfter removing old style tweet, hyperlinks and # sign')
+print(tweet2)
+
+
+
+
+## Tokenize ##
+
+print('Before Tokenizing: ')
+print(tweet2)
+
+# Tokenizer class
+tokenizer = TweetTokenizer(preserve_case=False, 
+                           strip_handles=True,
+                           reduce_len=True)
+
+# Tokenize aplicado a los tweets
+tweet_tokens = tokenizer.tokenize(tweet2)
+
+print('\nTokenized string:')
+print(tweet_tokens)
+
+
+
+## Eliminemos las stopwords y los signos de puntuación ##
+#Importamos la muestra de stopwords del idioma Inglés de la biblioteca NLTK
+stopwords_english = stopwords.words('english') 
+
+print('Stop words\n')
+print(stopwords_english)
+
+print('\nPunctuation\n')
+print(string.punctuation)
+
+
+
+print('Before tokenization')
+print(tweet_tokens)
+
+
+tweets_clean = []
+
+for word in tweet_tokens: # Go through every word in your tokens list
+    if (word not in stopwords_english and  # remove stopwords
+        word not in string.punctuation):  # remove punctuation
+        tweets_clean.append(word)
+
+print('\n\nAfter removing stop words and punctuation:')
+print(tweets_clean)
+
+
+
+## Stemming ##
+
+# El Steamming es el proceso de convertir una palabra a su forma más general, o raíz. 
+# Esto ayuda a reducir el tamaño de nuestro vocabulario.
+# NLTK tiene diferentes módulos para la derivación y utilizaremos el módulo PorterStemmer 
+# que utiliza el algoritmo de derivación de Porter. Veamos cómo podemos usarlo en la celda a continuación.
+
+
+
+
+# Stemming class
+stemmer = PorterStemmer() 
+
+# Creamos una lista para almacenar los stems
+tweets_stem = [] 
+
+for word in tweets_clean:
+    stem_word = stemmer.stem(word)  # palabra stemming 
+    tweets_stem.append(stem_word)  # agregar a la lista
+
+print('Words after stemming: ')
+print(tweets_stem)
+
+
+
+# dividimos los datos en dos partes, una para entrenamiento y otra para prueba (conjunto de validación)
+test_pos = all_positive_tweets[4000:]
+train_pos = all_positive_tweets[:4000]
+test_neg = all_negative_tweets[4000:]
+train_neg = all_negative_tweets[:4000]
+
+train_x = train_pos + train_neg 
+test_x = test_pos + test_neg
+
+
+
+# combine positive and negative labels
+train_y = np.append(np.ones((len(train_pos), 1)), np.zeros((len(train_neg), 1)), axis=0)
+test_y = np.append(np.ones((len(test_pos), 1)), np.zeros((len(test_neg), 1)), axis=0)
+
+
+
+# combinamos etiquetas positivas y negativas
+print("train_y.shape = " + str(train_y.shape))
+print("test_y.shape = " + str(test_y.shape))
+
+
+
+# test sobre la funcion de continuidad
+print('This is an example of a positive tweet: \n', train_x[0])
